@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="am">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MK TV - የቀረጻ መደቢያ ሲስተም</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-6">
+    <div class="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Form -->
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-xl font-bold mb-4 text-blue-800">አዲስ የቀረጻ ስራ መድብ</h2>
+            <form id="assignForm" class="space-y-3">
+                <input type="text" id="title" placeholder="የቀረጻ ርዕስ" required class="w-full p-2 border rounded">
+                <input type="text" id="location" placeholder="የቀረጻ ቦታ" required class="w-full p-2 border rounded">
+                <select id="cameraman" required class="w-full p-2 border rounded">
+                    <option value="">ካሜራ ባለሙያ ይምረጡ</option>
+                    <option value="ዮናስ ከበደ">ዮናስ ከበደ</option>
+                    <option value="ዳዊት ሰለሞን">ዳዊት ሰለሞን</option>
+                    <option value="አቤል ተስፋዬ">አቤል ተስፋዬ</option>
+                </select>
+                <label class="block text-sm text-gray-600">የሚጀምርበት ሰዓት</label>
+                <input type="datetime-local" id="start_time" required class="w-full p-2 border rounded">
+                <label class="block text-sm text-gray-600">የሚያልቅበት ሰዓት</label>
+                <input type="datetime-local" id="end_time" required class="w-full p-2 border rounded">
+                <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">ስራ መድብ</button>
+            </form>
+            <div id="msg" class="mt-3 font-semibold text-sm"></div>
+        </div>
+
+        <!-- Task List -->
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-xl font-bold mb-4 text-gray-800">የተመደቡ ስራዎች ዝርዝር</h2>
+            <div id="taskList" class="space-y-3"></div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('assignForm');
+        const msg = document.getElementById('msg');
+        const taskList = document.getElementById('taskList');
+
+        async function loadTasks() {
+            const res = await fetch('/api/assignments');
+            const data = await res.json();
+            taskList.innerHTML = data.map(t => `
+                <div class="p-3 border-l-4 border-blue-500 bg-gray-50 rounded shadow-sm">
+                    <p class="font-bold text-gray-800">${t.title}</p>
+                    <p class="text-sm text-gray-600">📍 ቦታ፦ ${t.location}</p>
+                    <p class="text-sm text-gray-600">🎥 ባለሙያ፦ ${t.cameraman}</p>
+                    <p class="text-xs text-blue-600 mt-1">🕒 ${new Date(t.start_time).toLocaleString()} - ${new Date(t.end_time).toLocaleString()}</p>
+                </div>
+            `).join('');
+        }
+
+        form.onsubmit = async (e) => {
+            e.preventDefault();
+            msg.innerText = "እየተመዘገበ ነው...";
+            msg.className = "text-gray-600";
+
+            const body = {
+                title: document.getElementById('title').value,
+                location: document.getElementById('location').value,
+                cameraman: document.getElementById('cameraman').value,
+                start_time: document.getElementById('start_time').value,
+                end_time: document.getElementById('end_time').value
+            };
+
+            const res = await fetch('/api/assign-task', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                msg.innerText = data.message;
+                msg.className = "text-green-600";
+                form.reset();
+                loadTasks();
+            } else {
+                msg.innerText = data.message;
+                msg.className = "text-red-600";
+            }
+        };
+
+        loadTasks();
+    </script>
+</body>
+</html>
